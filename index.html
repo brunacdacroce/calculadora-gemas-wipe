@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Gemas — Wipe</title>
+<style>
+  :root{
+    --bg:#03050a;
+    --surface:#0b0f18;
+    --surface-2:#111726;
+    --surface-hover:#182036;
+    --border:#212a3d;
+    --border-soft:#171e2d;
+    --text:#e7f1f5;
+    --text-muted:#67798c;
+    --text-faint:#3f4c60;
+    --gold:#e8ab3f;
+    --gold-bright:#ffd27a;
+    --gold-deep:#7a5216;
+    --gold-tint:#20190c;
+    --teal:#3ed7f0;
+    --teal-tint:#0b232b;
+    --red:#ff5470;
+    --red-tint:#2a121a;
+    --radius:2px;
+    --mono:ui-monospace,"SFMono-Regular","Roboto Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --cut:14px;
+  }
+  html{color-scheme:dark;background:#03050a;}
+  body{min-height:100vh;}
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(180deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px),
+      radial-gradient(900px 480px at 15% -10%, rgba(232,171,63,0.09), transparent 60%),
+      radial-gradient(700px 560px at 100% 0%, rgba(62,215,240,0.07), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:15px;
+    line-height:1.5;
+  }
+  .wrap{max-width:1000px;margin:0 auto;padding:0 20px 80px;}
+
+  header.top{
+    position:relative;
+    margin:0 -20px 26px;
+    padding:34px 20px 24px;
+    overflow:hidden;
+    border-bottom:1px solid var(--border-soft);
+  }
+  header.top::before{
+    content:"";
+    position:absolute;inset:0;
+    background-image:
+      linear-gradient(rgba(62,215,240,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(62,215,240,0.05) 1px, transparent 1px),
+      repeating-linear-gradient(115deg, rgba(232,171,63,0.045) 0 1px, transparent 1px 90px);
+    background-size:26px 26px, 26px 26px, auto;
+    mask-image:linear-gradient(to bottom, black, transparent 88%);
+    pointer-events:none;
+  }
+  header.top::after{
+    content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;
+    background:linear-gradient(90deg, var(--gold) 0%, transparent 18%, transparent 82%, var(--teal) 100%);
+    opacity:0.6;
+  }
+  header.top .eyebrow-row{position:relative;display:flex;align-items:center;gap:11px;margin-bottom:6px;}
+  header.top .gem-mark{flex:none;filter:drop-shadow(0 0 8px rgba(232,171,63,0.55));}
+  header.top h1{
+    position:relative;
+    font-size:26px;
+    font-weight:700;
+    margin:0;
+    letter-spacing:-0.01em;
+    color:var(--text);
+  }
+  header.top p{position:relative;margin:0;color:var(--text-muted);font-size:14px;max-width:60ch;}
+
+  nav.tabs{display:flex;gap:10px;border-bottom:none;margin-bottom:26px;}
+  nav.tabs button{
+    position:relative;
+    background:var(--surface);border:1px solid var(--border-soft);color:var(--text-muted);
+    font-size:13.5px;font-weight:600;padding:10px 18px;
+    cursor:pointer;
+    clip-path:polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px));
+    transition:color .15s, border-color .15s, background .15s;
+  }
+  nav.tabs button:hover{color:var(--text);border-color:#334059;}
+  nav.tabs button.active{
+    color:var(--gold-bright);
+    background:var(--gold-tint);
+    border-color:var(--gold-deep);
+    box-shadow:0 0 0 1px rgba(232,171,63,0.15) inset;
+  }
+  nav.tabs button.active::before{
+    content:"";display:inline-block;width:6px;height:6px;margin-right:8px;
+    background:var(--gold);transform:rotate(45deg) translateY(-1px);
+  }
+
+  section.tab{display:none;}
+  section.tab.active{display:block;animation:fadeIn .18s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+
+  .card{
+    position:relative;
+    background:linear-gradient(165deg, var(--surface), var(--surface) 55%, var(--surface-2));
+    border:1px solid var(--border);
+    clip-path:polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+    padding:22px;
+    margin-bottom:18px;
+    box-shadow:0 1px 0 rgba(255,255,255,0.02) inset, 0 8px 24px -16px rgba(0,0,0,0.7);
+  }
+  .card h2{font-size:14.5px;font-weight:700;margin:0 0 14px;display:flex;align-items:center;gap:9px;letter-spacing:0.01em;}
+  .card h2::before{content:"";width:3px;height:15px;background:var(--gold);display:inline-block;}
+  .card p.hint{color:var(--text-muted);font-size:13px;margin:-8px 0 14px;}
+
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field label{font-size:12px;color:var(--text-muted);font-weight:500;text-transform:none;}
+  .field input, .field select, .field textarea{
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:3px;
+    padding:9px 11px;
+    font-size:14px;
+    font-family:inherit;
+    transition:border-color .12s, background .12s, box-shadow .12s;
+  }
+  .field input::placeholder, .field textarea::placeholder{color:var(--text-faint);}
+  .field input:hover, .field select:hover, .field textarea:hover{border-color:#334059;}
+  .field input:focus, .field select:focus, .field textarea:focus{
+    outline:none;border-color:var(--teal);background:var(--surface-hover);
+    box-shadow:0 0 0 3px rgba(62,215,240,0.13);
+  }
+  .field textarea{resize:vertical;min-height:44px;}
+  .field select{
+    appearance:none;-webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' fill='none' stroke='%2367798c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right 12px center;
+    padding-right:32px;
+  }
+  input[type="checkbox"]{accent-color:var(--teal);width:14px;height:14px;}
+  input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.75) sepia(0.3) hue-rotate(140deg) saturate(2);cursor:pointer;}
+
+  .grid{display:grid;gap:14px;}
+  .grid.cols-2{grid-template-columns:1fr 1fr;}
+  .grid.cols-3{grid-template-columns:1fr 1fr 1fr;}
+  .grid.cols-4{grid-template-columns:1fr 1fr 1fr 1fr;}
+  @media (max-width:640px){
+    .grid.cols-2, .grid.cols-3, .grid.cols-4{grid-template-columns:1fr;}
+  }
+
+  .computed-box{
+    position:relative;
+    background:linear-gradient(135deg, var(--gold-tint), var(--surface-2));
+    border:1px solid var(--gold-deep);
+    clip-path:polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    padding:14px 16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:6px;
+    gap:12px;
+  }
+  .computed-box .label{color:var(--text-muted);font-size:13px;}
+  .computed-box .value{
+    font-family:var(--mono);
+    font-size:22px;font-weight:600;color:var(--gold-bright);
+    letter-spacing:0.01em;display:flex;align-items:center;gap:8px;
+    text-shadow:0 0 16px rgba(255,210,122,0.35);
+  }
+  .computed-box .value::before{
+    content:"◆";font-size:13px;color:var(--gold);
+  }
+
+  button.btn{
+    position:relative;
+    background:linear-gradient(180deg, var(--gold-bright), var(--gold));
+    color:#241a06;border:none;
+    clip-path:polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px));
+    padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;
+    box-shadow:0 1px 0 rgba(255,255,255,0.3) inset, 0 6px 18px -6px rgba(232,171,63,0.5);
+    transition:transform .1s, box-shadow .1s, filter .1s;
+  }
+  button.btn:hover{filter:brightness(1.05);box-shadow:0 1px 0 rgba(255,255,255,0.3) inset, 0 0 22px -2px rgba(232,171,63,0.65);}
+  button.btn:active{transform:translateY(1px);}
+  button.btn.secondary{
+    background:var(--surface-2);color:var(--text);border:1px solid var(--border);
+    box-shadow:none;
+  }
+  button.btn.secondary:hover{border-color:var(--teal);color:var(--teal);background:var(--surface-hover);}
+  button.btn.danger{background:linear-gradient(180deg,#ff8093,var(--red));color:#2a0d13;}
+  button.btn.small{padding:6px 13px;font-size:12.5px;}
+  button.icon-btn{
+    background:none;border:none;color:var(--text-faint);cursor:pointer;
+    font-size:14px;padding:5px 8px;border-radius:3px;line-height:1;
+    transition:background .12s,color .12s;
+  }
+  button.icon-btn:hover{background:var(--red-tint);color:var(--red);}
+
+  #dup-warning{
+    display:none;
+    background:var(--red-tint);border:1px solid #4a1b26;color:#ffb9c5;
+    border-radius:3px;padding:13px 15px;font-size:13.5px;margin-top:12px;
+    border-left:3px solid var(--red);
+  }
+  #dup-warning .actions{margin-top:10px;display:flex;gap:8px;}
+
+  .summary-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px;}
+  @media (max-width:900px){.summary-row{grid-template-columns:1fr 1fr 1fr;}}
+  @media (max-width:640px){.summary-row{grid-template-columns:1fr 1fr;}}
+  .stat{
+    background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--border);
+    clip-path:polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    padding:15px 16px;
+  }
+  .stat .num{font-family:var(--mono);font-size:21px;font-weight:600;letter-spacing:0.01em;}
+  .stat .lbl{color:var(--text-muted);font-size:12px;margin-top:4px;}
+  .stat.gold{border-top-color:var(--gold);}
+  .stat.teal{border-top-color:var(--teal);}
+  .stat.red{border-top-color:var(--red);}
+  .stat.gold .num{color:var(--gold-bright);}
+  .stat.teal .num{color:var(--teal);}
+  .stat.red .num{color:var(--red);}
+
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;}
+  .filters .field{min-width:170px;}
+  .filters label.check{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-muted);margin-bottom:9px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{
+    text-align:left;color:var(--teal);font-weight:600;font-size:11px;
+    padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap;
+    letter-spacing:0.02em;
+  }
+  tbody td{padding:10px;border-bottom:1px solid var(--border-soft);vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover td{background:var(--surface-2);}
+  tbody tr.dup td{background:var(--red-tint);}
+  tbody tr.dup:hover td{background:#331721;}
+  .badge{
+    display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--red);
+    background:var(--red-tint);border:1px solid #4a1b26;border-radius:3px;
+    padding:1px 6px;margin-left:6px;vertical-align:middle;
+  }
+  .pct-badge{
+    display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--teal);
+    background:var(--teal-tint);border-radius:3px;padding:2px 6px;white-space:nowrap;
+  }
+  button.status-pendente{
+    background:var(--gold-tint);color:var(--gold-bright);border:1px solid var(--gold-deep);
+    border-radius:4px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;
+  }
+  button.status-pendente:hover{filter:brightness(1.15);}
+  button.status-enviado{
+    background:var(--teal-tint);color:var(--teal);border:1px solid #1c4650;
+    border-radius:4px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;
+    display:inline-flex;align-items:center;gap:4px;
+  }
+  button.status-enviado:hover{filter:brightness(1.15);}
+  .table-scroll{overflow-x:auto;}
+  .num-cell{font-family:var(--mono);white-space:nowrap;}
+  .row-actions{display:flex;gap:2px;white-space:nowrap;}
+
+  details.cat-block{
+    background:var(--surface);border:1px solid var(--border);
+    clip-path:polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+    margin-bottom:14px;overflow:hidden;
+  }
+  details.cat-block[open]{padding-bottom:4px;}
+  details.cat-block summary{
+    list-style:none;cursor:pointer;padding:15px 18px;
+    display:flex;align-items:center;gap:10px;user-select:none;
+  }
+  details.cat-block summary::-webkit-details-marker{display:none;}
+  details.cat-block summary .cat-chevron{
+    color:var(--teal);font-size:11px;transition:transform .15s;flex:none;
+  }
+  details.cat-block[open] summary .cat-chevron{transform:rotate(90deg);}
+  details.cat-block summary .cat-marker{
+    width:8px;height:8px;background:var(--gold);
+    transform:rotate(45deg);flex:none;
+  }
+  details.cat-block summary .cat-title{font-size:14px;font-weight:700;flex:1;letter-spacing:0.01em;}
+  details.cat-block summary .cat-count{font-family:var(--mono);font-size:11.5px;color:var(--text-muted);font-weight:500;}
+  .cat-body{padding:2px 18px 16px;border-top:1px solid var(--border-soft);}
+  .cat-toolbar{
+    display:flex;align-items:center;gap:10px;padding:14px 0 12px;
+  }
+  .cat-toolbar .cat-name-edit{
+    flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:3px;
+    display:flex;align-items:center;
+  }
+  .cat-toolbar .cat-name-edit input{
+    background:transparent;border:none;color:var(--text);font-size:13.5px;font-weight:600;
+    padding:7px 10px;width:100%;
+  }
+  .cat-toolbar .cat-name-edit input:focus{outline:none;}
+
+  .item-row-head{
+    display:grid;grid-template-columns:2fr 1fr 1fr 34px;gap:8px;padding:0 2px 6px;
+    font-size:10.5px;color:var(--text-faint);font-weight:600;letter-spacing:0.02em;
+  }
+  @media (max-width:640px){.item-row-head{display:none;}}
+
+  .add-item-row{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;margin-top:10px;}
+  @media (max-width:640px){.add-item-row{grid-template-columns:1fr 1fr;}}
+  .add-item-row input{width:100%;}
+
+  .item-row-inputs{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;width:100%;align-items:center;}
+  .item-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-soft);}
+  .item-row:last-of-type{border-bottom:none;}
+  .discount-cell{display:flex;align-items:center;gap:6px;}
+
+  #modal-overlay{
+    display:none;position:fixed;inset:0;background:rgba(2,3,6,0.75);backdrop-filter:blur(2px);
+    align-items:center;justify-content:center;z-index:50;padding:20px;
+  }
+  #modal-overlay .modal{
+    background:var(--surface-2);border:1px solid var(--border);
+    clip-path:polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+    padding:22px;max-width:420px;width:100%;
+    box-shadow:0 20px 60px -20px rgba(0,0,0,0.8);
+  }
+  #modal-overlay .modal p{font-size:14px;margin:0 0 18px;color:var(--text);}
+  #modal-overlay .modal .actions{display:flex;justify-content:flex-end;gap:8px;}
+
+  #toast{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+    background:var(--surface-2);border:1px solid var(--teal);color:var(--text);
+    padding:9px 16px;border-radius:3px;font-size:13px;opacity:0;pointer-events:none;
+    transition:opacity .2s;z-index:60;
+    box-shadow:0 0 24px -4px rgba(62,215,240,0.4);
+  }
+  #toast.show{opacity:1;}
+
+  .empty-state{color:var(--text-muted);font-size:13.5px;padding:40px 0;text-align:center;}
+  .empty-state .empty-gem{display:block;margin:0 auto 12px;opacity:0.5;}
+  .note-box{
+    background:var(--surface-2);border:1px solid var(--border);border-left:3px solid var(--teal);
+    border-radius:3px;
+    padding:12px 14px;font-size:13px;color:var(--text-muted);margin-bottom:16px;
+  }
+
+  /* ---------- Acesso / Supabase ---------- */
+  body.auth-pending .wrap{display:none;}
+  #auth-overlay{
+    position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;
+    padding:20px;background:
+      radial-gradient(700px 420px at 25% 0%, rgba(232,171,63,.10), transparent 60%),
+      radial-gradient(700px 520px at 100% 0%, rgba(62,215,240,.08), transparent 55%),
+      var(--bg);
+  }
+  #auth-overlay.hidden{display:none;}
+  .auth-card{
+    width:min(430px,100%);background:linear-gradient(165deg,var(--surface),var(--surface-2));
+    border:1px solid var(--border);padding:24px;
+    clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+    box-shadow:0 22px 70px -28px rgba(0,0,0,.9);
+  }
+  .auth-card h2{margin:0 0 5px;font-size:20px;}
+  .auth-card p{margin:0 0 18px;color:var(--text-muted);font-size:13px;}
+  .auth-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  .auth-message{min-height:20px;margin-top:12px;font-size:12.5px;color:var(--text-muted);}
+  .auth-message.error{color:#ff9aaa;}
+  .auth-message.ok{color:var(--teal);}
+  .top-account{
+    position:relative;margin-left:auto;display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:11px;
+  }
+  .top-account button{
+    background:var(--surface-2);border:1px solid var(--border);color:var(--text-muted);
+    padding:5px 8px;font-size:11px;cursor:pointer;border-radius:3px;
+  }
+  .top-account button:hover{border-color:var(--teal);color:var(--teal);}
+</style>
+</head>
+<body class="auth-pending">
+
+<div id="auth-overlay">
+  <div class="auth-card">
+    <div class="eyebrow-row" style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 2 L20 8 L12 22 L4 8 Z" fill="#e8ab3f"/>
+        <path d="M4 8 L20 8" stroke="#ffd27a" stroke-width="1"/>
+      </svg>
+      <strong>Calculadora de Gemas — Wipe</strong>
+    </div>
+    <h2>Acesso</h2>
+    <p>Entre para acessar os registros compartilhados da calculadora.</p>
+    <div class="field">
+      <label for="auth-email">E-mail</label>
+      <input id="auth-email" type="email" autocomplete="email" placeholder="seu@email.com">
+    </div>
+    <div class="field" style="margin-top:10px;">
+      <label for="auth-password">Senha</label>
+      <input id="auth-password" type="password" autocomplete="current-password" placeholder="Sua senha">
+    </div>
+    <div class="auth-actions">
+      <button class="btn" id="auth-login-btn" type="button">Entrar</button>
+      <button class="btn secondary" id="auth-signup-btn" type="button">Criar acesso</button>
+    </div>
+    <div id="auth-message" class="auth-message"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow-row">
+      <svg class="gem-mark" width="26" height="26" viewBox="0 0 24 24" fill="none">
+        <defs>
+          <linearGradient id="gemGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#f2c579"/>
+            <stop offset="1" stop-color="#c8862f"/>
+          </linearGradient>
+        </defs>
+        <path d="M12 2 L20 8 L12 22 L4 8 Z" fill="url(#gemGrad)"/>
+        <path d="M12 2 L20 8 L12 22 Z" fill="#ffffff" opacity="0.12"/>
+        <path d="M4 8 L20 8 L12 22 Z" fill="#000000" opacity="0.08"/>
+        <path d="M12 2 L8.6 8 M12 2 L15.4 8 M8.6 8 L12 22 M15.4 8 L12 22" stroke="#ffffff" stroke-opacity="0.35" stroke-width="0.5"/>
+      </svg>
+      <h1>Calculadora de Gemas — Wipe</h1>
+      <div class="top-account"><span id="account-email"></span><button type="button" id="logout-btn">Sair</button></div>
+    </div>
+    <p>Cadastra os itens comprados por cada cliente e calcula quantas gemas precisam ser enviadas, com base no valor com desconto.</p>
+  </header>
+
+  <nav class="tabs">
+    <button data-tab="registrar" class="active">Registrar</button>
+    <button data-tab="catalogo">Catálogo</button>
+    <button data-tab="config">Config</button>
+  </nav>
+
+  <!-- REGISTRAR -->
+  <section class="tab active" id="tab-registrar">
+    <div class="card">
+      <h2>Novo registro</h2>
+      <div id="form-registro">
+        <div class="grid cols-2">
+          <div class="field">
+            <label for="f-cliente">Cliente</label>
+            <input type="text" id="f-cliente" required placeholder="Nome do cliente" list="clientes-conhecidos">
+            <datalist id="clientes-conhecidos"></datalist>
+          </div>
+          <div class="field">
+            <label for="f-id-jogo">ID do jogador</label>
+            <input type="text" id="f-id-jogo" placeholder="Opcional">
+          </div>
+        </div>
+
+        <div class="grid cols-2" style="margin-top:14px;">
+          <div class="field">
+            <label for="f-discord">Discord ID</label>
+            <input type="text" id="f-discord" placeholder="Opcional">
+          </div>
+          <div class="field">
+            <label for="f-afl">Atendido por (AFL)</label>
+            <select id="f-afl"></select>
+          </div>
+        </div>
+
+        <div class="grid cols-2" style="margin-top:14px;">
+          <div class="field">
+            <label for="f-categoria">Categoria</label>
+            <select id="f-categoria"></select>
+          </div>
+          <div class="field">
+            <label for="f-item">Item</label>
+            <select id="f-item"></select>
+          </div>
+        </div>
+
+        <div class="grid cols-3" style="margin-top:14px;">
+          <div class="field">
+            <label for="f-qtd">Quantidade</label>
+            <input type="number" id="f-qtd" min="1" step="1" value="1">
+          </div>
+          <div class="field">
+            <label for="f-valor">Valor pago (com desconto, unitário)</label>
+            <input type="number" id="f-valor" min="0" step="0.01">
+          </div>
+          <div class="field">
+            <label for="f-data">Data</label>
+            <input type="date" id="f-data">
+          </div>
+        </div>
+
+        <div class="grid cols-2" style="margin-top:14px;">
+          <div class="field">
+            <label for="f-novo-id">Novo ID / Referência</label>
+            <input type="text" id="f-novo-id" placeholder="Opcional">
+          </div>
+          <div class="field">
+            <label for="f-obs">Observação</label>
+            <textarea id="f-obs" placeholder="Opcional"></textarea>
+          </div>
+        </div>
+
+        <div class="computed-box">
+          <span class="label">Gemas a enviar (qtd × valor pago × taxa de conversão)</span>
+          <span class="value" id="f-gemas-preview">0</span>
+        </div>
+
+        <div id="dup-warning">
+          <div id="dup-warning-text"></div>
+          <div class="actions">
+            <button type="button" class="btn danger small" id="dup-confirm-btn">Registrar mesmo assim</button>
+            <button type="button" class="btn secondary small" id="dup-cancel-btn">Cancelar</button>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;display:flex;gap:8px;">
+          <button type="button" class="btn" id="submit-btn">Registrar</button>
+          <button type="button" class="btn secondary" id="new-client-btn">Limpar (novo cliente)</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="hint" style="margin:-4px 0 12px;">Os números abaixo consideram os filtros aplicados — busque por um cliente pra ver só o total dele.</p>
+    <div class="summary-row">
+      <div class="stat"><div class="num" id="stat-total">0</div><div class="lbl">Registros</div></div>
+      <div class="stat teal"><div class="num" id="stat-valor">R$ 0,00</div><div class="lbl">Valor total recebido</div></div>
+      <div class="stat gold"><div class="num" id="stat-gemas">0</div><div class="lbl">Gemas a enviar</div></div>
+      <div class="stat"><div class="num" id="stat-pendente">0</div><div class="lbl">Pendentes de envio</div></div>
+      <div class="stat red"><div class="num" id="stat-dup">0</div><div class="lbl">Duplicados encontrados</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Relatório</h2>
+      <div class="filters">
+        <div class="field">
+          <label for="filter-cliente">Buscar cliente</label>
+          <input type="text" id="filter-cliente" placeholder="Nome...">
+        </div>
+        <div class="field">
+          <label for="filter-categoria">Categoria</label>
+          <select id="filter-categoria"><option value="">Todas</option></select>
+        </div>
+        <div class="field">
+          <label for="filter-afl">Atendente</label>
+          <select id="filter-afl"><option value="">Todos</option></select>
+        </div>
+        <div class="field">
+          <label for="filter-status">Envio</label>
+          <select id="filter-status">
+            <option value="">Todos</option>
+            <option value="pendente">Pendentes</option>
+            <option value="enviado">Enviados</option>
+          </select>
+        </div>
+        <label class="check"><input type="checkbox" id="filter-dup"> Somente duplicados</label>
+        <div style="flex:1;"></div>
+        <button class="btn secondary small" id="export-csv-btn">Exportar CSV</button>
+      </div>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th><th>Cliente</th><th>ID</th><th>Discord ID</th><th>Categoria</th><th>Item</th>
+              <th>Qtd</th><th>Valor unit.</th><th>Valor total</th><th>Gemas</th><th>Status</th><th>Novo ID</th><th>AFL</th><th>Obs.</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="report-tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="report-empty" style="display:none;">
+        <svg class="empty-gem" width="30" height="30" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2 L20 8 L12 22 L4 8 Z" stroke="#7d879b" stroke-width="1.3"/>
+          <path d="M4 8 L20 8" stroke="#7d879b" stroke-width="1.3"/>
+        </svg>
+        Nenhum registro ainda.
+      </div>
+    </div>
+  </section>
+
+  <!-- CATALOGO -->
+  <section class="tab" id="tab-catalogo">
+    <div class="card">
+      <h2>Taxa de conversão</h2>
+      <p class="hint">Define quantas gemas equivalem a R$ 1,00. Ajuste aqui se não for 1 para 1.</p>
+      <div class="field" style="max-width:260px;">
+        <label for="f-taxa">1 real (R$) = quantas gemas</label>
+        <input type="number" id="f-taxa" min="0" step="0.01">
+      </div>
+    </div>
+
+    <div class="note-box">
+      Catálogo carregado a partir da planilha "VALORES SANTA". A categoria IDs usa a coluna "Valor" (só existe preço para as faixas, não para ID 1 a ID 10 individuais). A categoria Números de Telefone usa a coluna "Numero de Telefone" da mesma tabela — mesma faixa de valores, mas é um produto diferente (telefone), por isso os itens aparecem como "Número 1", "Número 2" etc.
+      A taxa 1 real = 1 gema foi conferida com registros já existentes na planilha do wipe (ex.: Resgate R$35 desconto → 35 gemas, Vip Lançamento R$100 → 100 gemas) e bateu certo.
+    </div>
+
+    <div id="catalog-container"></div>
+
+    <div class="card">
+      <h2>Nova categoria</h2>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="new-cat-name" placeholder="Nome da categoria" style="flex:1;background:var(--surface-alt);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:9px 10px;font-size:14px;">
+        <button class="btn secondary" id="add-cat-btn">Adicionar categoria</button>
+      </div>
+    </div>
+
+    <div style="text-align:right;">
+      <button class="btn secondary small" id="reset-catalog-btn">Restaurar catálogo padrão</button>
+    </div>
+  </section>
+
+  <!-- CONFIG -->
+  <section class="tab" id="tab-config">
+    <div class="card">
+      <h2>Atendentes (AFL)</h2>
+      <p class="hint">Só quem estiver cadastrado aqui aparece pra escolher no campo "Atendido por" do registro.</p>
+      <div id="afl-list"></div>
+      <div class="add-item-row" style="grid-template-columns:1fr auto;margin-top:12px;">
+        <input type="text" id="new-afl-name" placeholder="Nome do atendente">
+        <button class="btn secondary" id="add-afl-btn">Adicionar atendente</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="modal-overlay">
+  <div class="modal">
+    <p id="modal-message"></p>
+    <div id="modal-extra"></div>
+    <div class="actions">
+      <button class="btn secondary" id="modal-cancel-btn">Cancelar</button>
+      <button class="btn danger" id="modal-confirm-btn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+<script>
+(function(){
+
+  // ---------- Supabase ----------
+  const SUPABASE_URL = 'https://lrqqwqwjxyocmpulozvk.supabase.co';
+  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_7klAFE3WIcug-MHm68Jt7A_klwH8TkD';
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true }
+  });
+
+  const authOverlay = document.getElementById('auth-overlay');
+  const authMessage = document.getElementById('auth-message');
+  const authEmail = document.getElementById('auth-email');
+  const authPassword = document.getElementById('auth-password');
+  const accountEmail = document.getElementById('account-email');
+  let appStarted = false;
+
+  function setAuthMessage(message, type){
+    authMessage.textContent = message || '';
+    authMessage.className = 'auth-message' + (type ? ' ' + type : '');
+  }
+
+  async function showApp(session){
+    if(!session || !session.user) return;
+    accountEmail.textContent = session.user.email || 'Usuário';
+    authOverlay.classList.add('hidden');
+    document.body.classList.remove('auth-pending');
+    if(!appStarted){
+      appStarted = true;
+      await init();
+    }else{
+      await loadState();
+      populateFormSelects();
+      populateClientesList();
+      renderCatalogEditor();
+      renderReport();
+    }
+  }
+
+  async function showLogin(){
+    document.body.classList.add('auth-pending');
+    authOverlay.classList.remove('hidden');
+    accountEmail.textContent = '';
+    setAuthMessage('');
+  }
+
+  async function signIn(){
+    const email = authEmail.value.trim();
+    const password = authPassword.value;
+    if(!email || !password){ setAuthMessage('Informe e-mail e senha.', 'error'); return; }
+    setAuthMessage('Entrando...');
+    const { data, error } = await db.auth.signInWithPassword({ email, password });
+    if(error){ setAuthMessage(error.message || 'Não foi possível entrar.', 'error'); return; }
+    authPassword.value = '';
+    setAuthMessage('');
+    await showApp(data.session);
+  }
+
+  async function signUp(){
+    const email = authEmail.value.trim();
+    const password = authPassword.value;
+    if(!email || !password){ setAuthMessage('Informe e-mail e senha.', 'error'); return; }
+    if(password.length < 6){ setAuthMessage('A senha precisa ter pelo menos 6 caracteres.', 'error'); return; }
+    setAuthMessage('Criando acesso...');
+    const { data, error } = await db.auth.signUp({ email, password });
+    if(error){ setAuthMessage(error.message || 'Não foi possível criar o acesso.', 'error'); return; }
+    authPassword.value = '';
+    if(data.session){
+      setAuthMessage('');
+      await showApp(data.session);
+    }else{
+      setAuthMessage('Acesso criado. Confira seu e-mail para confirmar a conta e depois entre.', 'ok');
+    }
+  }
+
+  document.getElementById('auth-login-btn').addEventListener('click', signIn);
+  document.getElementById('auth-signup-btn').addEventListener('click', signUp);
+  authPassword.addEventListener('keydown', function(e){ if(e.key === 'Enter') signIn(); });
+  document.getElementById('logout-btn').addEventListener('click', async function(){
+    await db.auth.signOut();
+    await showLogin();
+  });
+
+  // Mantém a interface original e troca apenas o armazenamento por Supabase.
+  window.storage = {
+    async get(key){
+      const { data, error } = await db.from('app_state').select('value').eq('key', key).maybeSingle();
+      if(error) throw error;
+      return data ? { value: JSON.stringify(data.value) } : null;
+    },
+    async set(key, value){
+      let parsed;
+      try{ parsed = JSON.parse(value); }catch(e){ parsed = value; }
+      const { error } = await db.from('app_state').upsert({
+        key: key,
+        value: parsed,
+        updated_at: new Date().toISOString()
+      }, { onConflict:'key' });
+      if(error) throw error;
+      return { value: value };
+    }
+  };
+
+  // ---------- Captura global de erros (banner visível, pra nunca mais "não acontecer nada" em silêncio) ----------
+  function showFatalError(msg){
+    var el = document.getElementById('fatal-error-banner');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'fatal-error-banner';
+      el.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#ff5470;color:#2a0d13;padding:10px 16px;font-size:12.5px;font-weight:700;z-index:9999;font-family:monospace;word-break:break-word;box-shadow:0 4px 20px rgba(0,0,0,.4);';
+      document.body.appendChild(el);
+    }
+    el.textContent = 'Erro no app (manda print disso pra Bruna/suporte): ' + msg;
+  }
+  window.addEventListener('error', function(e){ showFatalError(e.message || String(e.error)); });
+  window.addEventListener('unhandledrejection', function(e){ showFatalError((e.reason && e.reason.message) || String(e.reason)); });
+
+  // ---------- Catálogo padrão (fonte: planilha "VALORES SANTA") ----------
+  const DEFAULT_CATEGORIES = ['IDs','Números de Telefone','VIPs','Pacotes','Produtos','Carros'];
+  const DEFAULT_AFLS = ['SAC','CS MELL','MUNIK','Lu','Vz'];
+  const DEFAULT_CATALOG_RAW = [
+    ['IDs','ID 1', 40000, null],['IDs','ID 2', 25000, null],['IDs','ID 3', 15000, null],['IDs','ID 4', 10000, null],['IDs','ID 5', null, null],['IDs','ID 6', null, null],['IDs','ID 7', null, null],['IDs','ID 8', null, null],['IDs','ID 9', null, null],['IDs','ID 10', null, null],['IDs','ID 11 a 20', 4000, null],['IDs','ID 21 a 50', 2000, null],['IDs','ID 51 a 100', 1200, null],['IDs','ID 101 a 500', 400, null],['IDs','ID 501 a 999', 200, null],['IDs','IDs Simbólicos', 1500, null],
+    ['Números de Telefone','Número 1', 4000, null],['Números de Telefone','Número 2', 3700, null],['Números de Telefone','Número 3', 3400, null],['Números de Telefone','Número 4', 3000, null],['Números de Telefone','Número 5', 2700, null],['Números de Telefone','Número 6', 2400, null],['Números de Telefone','Número 7', 2000, null],['Números de Telefone','Número 8', 1200, null],['Números de Telefone','Número 9', 1400, null],['Números de Telefone','Número 10', 1000, null],['Números de Telefone','Número 11 a 20', 600, null],['Números de Telefone','Número 21 a 50', 500, null],['Números de Telefone','Número 51 a 100', 400, null],['Números de Telefone','Número 101 a 500', 200, null],['Números de Telefone','Número 501 a 999', 100, null],['Números de Telefone','Números Simbólicos', 280, null],
+    ['VIPs','VIP Imperial – 30 dias', 1001.00, 700],['VIPs','VIP Paredão – 30 dias', 572.00, 400],['VIPs','VIP Relíquia – 30 dias', 357.50, 250],['VIPs','VIP 244 – 30 dias', 143.00, 100],['VIPs','VIP Black – 60 dias', 1144.00, 800],['VIPs','VIP Black – 30 dias', 715.00, 500],['VIPs','VIP Platinum – 30 dias', 257.40, 180],['VIPs','VIP Ouro – 30 dias', 214.50, 150],['VIPs','VIP Prata – 30 dias', 85.80, 60],['VIPs','VIP Legal – 30 dias', 85.80, 60],['VIPs','VIP Bronze – 30 dias', 50.05, 35],['VIPs','VIP PVP – 30 dias', 35.75, 25],['VIPs','VIP Lançamento – 30 dias', 143.00, 100],['VIPs','BattlePass – 30 dias', 50.05, 35],
+    ['Pacotes','VIP Premium', 1000, 1000],['Pacotes','No pacote com os farmes', 750, 750],['Pacotes','2 Farmes + Uniforme 6 peças + VIP Premium', 2000, 2000],['Pacotes','2 Farmes + Uniforme 12 peças + VIP Premium', 2350, 2350],['Pacotes','3 Farmes + Uniforme 6 peças + VIP Premium', 2900, 2900],['Pacotes','3 Farmes + Uniforme 12 peças + VIP Premium', 3250, 3250],
+    ['Produtos','VIP Facção Prata', 650, 650],['Produtos','VIP Facção Ouro', 800, 800],['Produtos','VIP Facção Premium', 1400, 1400],['Produtos','Farms', 500, 500],['Produtos','12 peças de roupa', 1800, 1800],['Produtos','6 peças de roupa', 1000, 1000],['Produtos','1 peça de roupa', 200, 200],
+    ['Carros','Resgate', 50.00, 35],['Carros','Voador', 429.00, 300],['Carros','16 Tiros', 215.00, 150],['Carros','16 Tiros Pneu Full', 357.50, 250],['Carros','32 Tiros', 572.00, 400],['Carros','Full Blindado', 1716.00, 1200],['Carros','Abuser', 2288.00, 1600]
+  ];
+
+  function uid(){ return 'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+  function buildDefaultCatalog(){ return DEFAULT_CATALOG_RAW.map(function(r){ return { id: uid(), cat: r[0], name: r[1], full: r[2], discount: r[3] }; }); }
+  var state = { categories: DEFAULT_CATEGORIES.slice(), catalog: buildDefaultCatalog(), afls: DEFAULT_AFLS.slice(), taxa: 1, registros: [], pendingSave: null };
+
+  function formatBRL(v){ if(v === null || v === undefined || isNaN(v)) v = 0; return v.toLocaleString('pt-BR', {style:'currency', currency:'BRL'}); }
+  function formatNum(v){ if(v === null || v === undefined || isNaN(v)) v = 0; return v.toLocaleString('pt-BR', {maximumFractionDigits:2}); }
+  function normalize(s){ return (s||'').toString().trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+  function todayISO(){ var d = new Date(); var m = (d.getMonth()+1).toString().padStart(2,'0'); var day = d.getDate().toString().padStart(2,'0'); return d.getFullYear()+'-'+m+'-'+day; }
+  function showToast(msg){ var t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(function(){ t.classList.remove('show'); }, 2200); }
+
+  async function loadState(){
+    var hasRemoteConfig = false;
+    var hasRemoteRecords = false;
+    try{
+      var r = await window.storage.get('config', false);
+      if(r && r.value){
+        hasRemoteConfig = true;
+        var cfg = JSON.parse(r.value);
+        if(cfg.categories && cfg.categories.length) state.categories = cfg.categories;
+        if(cfg.catalog && cfg.catalog.length) state.catalog = cfg.catalog;
+        if(cfg.afls && cfg.afls.length) state.afls = cfg.afls;
+        if(typeof cfg.taxa === 'number') state.taxa = cfg.taxa;
+      }
+    }catch(e){ throw e; }
+    try{
+      var r2 = await window.storage.get('registros', false);
+      if(r2 && r2.value){ hasRemoteRecords = true; state.registros = JSON.parse(r2.value) || []; }
+      else{ state.registros = []; }
+    }catch(e){ throw e; }
+    var migrated = false;
+    DEFAULT_CATEGORIES.forEach(function(c){ if(state.categories.indexOf(c) === -1){ state.categories.push(c); migrated = true; } });
+    DEFAULT_CATALOG_RAW.forEach(function(row){ var exists = state.catalog.some(function(it){ return it.cat === row[0] && it.name === row[1]; }); if(!exists){ state.catalog.push({ id: uid(), cat: row[0], name: row[1], full: row[2], discount: row[3] }); migrated = true; } });
+    if(migrated || !hasRemoteConfig) await saveConfig();
+    if(!hasRemoteRecords) await saveRegistros();
+  }
+
+  async function saveConfig(){ try{ await window.storage.set('config', JSON.stringify({ categories: state.categories, catalog: state.catalog, afls: state.afls, taxa: state.taxa }), false); }catch(e){ showToast('Erro ao salvar catálogo'); } }
+  async function saveRegistros(){ try{ await window.storage.set('registros', JSON.stringify(state.registros), false); }catch(e){ showToast('Erro ao salvar registros'); } }
+
+  function showConfirm(message, onConfirm){
+    var overlay = document.getElementById('modal-overlay'); document.getElementById('modal-message').textContent = message; document.getElementById('modal-extra').innerHTML = ''; overlay.style.display = 'flex';
+    var confirmBtn = document.getElementById('modal-confirm-btn'); var cancelBtn = document.getElementById('modal-cancel-btn');
+    function cleanup(){ overlay.style.display = 'none'; confirmBtn.removeEventListener('click', onConfirmClick); cancelBtn.removeEventListener('click', onCancelClick); }
+    function onConfirmClick(){ cleanup(); onConfirm(); }
+    function onCancelClick(){ cleanup(); }
+    confirmBtn.addEventListener('click', onConfirmClick); cancelBtn.addEventListener('click', onCancelClick);
+  }
+
+  function promptEnviarGemas(registro){
+    var overlay = document.getElementById('modal-overlay'); var msgEl = document.getElementById('modal-message'); var extraEl = document.getElementById('modal-extra');
+    msgEl.textContent = 'Quem enviou as gemas pra ' + registro.cliente + ' (' + registro.itemNome + ', ' + formatNum(registro.gemas) + ' gemas)?'; extraEl.innerHTML = '';
+    var sel = document.createElement('select'); sel.style.width = '100%'; sel.style.marginTop = '6px';
+    var blank = document.createElement('option'); blank.value = ''; blank.textContent = state.afls.length ? 'Selecione quem enviou' : 'Nenhum atendente cadastrado (cadastre em Config)'; sel.appendChild(blank);
+    state.afls.forEach(function(a){ var opt = document.createElement('option'); opt.value = a; opt.textContent = a; sel.appendChild(opt); }); extraEl.appendChild(sel); overlay.style.display = 'flex';
+    var confirmBtn = document.getElementById('modal-confirm-btn'); var cancelBtn = document.getElementById('modal-cancel-btn');
+    function cleanup(){ overlay.style.display = 'none'; extraEl.innerHTML = ''; confirmBtn.removeEventListener('click', onConfirmClick); cancelBtn.removeEventListener('click', onCancelClick); }
+    function onConfirmClick(){ if(!sel.value){ showToast('Selecione quem enviou'); return; } registro.enviado = true; registro.enviadoPor = sel.value; saveRegistros(); cleanup(); renderReport(); showToast('Marcado como enviado'); }
+    function onCancelClick(){ cleanup(); }
+    confirmBtn.addEventListener('click', onConfirmClick); cancelBtn.addEventListener('click', onCancelClick);
+  }
+
+  function desmarcarEnvio(registro){ showConfirm('Marcar como NÃO enviado? (estava marcado como enviado por ' + registro.enviadoPor + ')', function(){ registro.enviado = false; registro.enviadoPor = ''; saveRegistros(); renderReport(); }); }
+
+  document.querySelectorAll('nav.tabs button').forEach(function(btn){ btn.addEventListener('click', function(){ document.querySelectorAll('nav.tabs button').forEach(function(b){ b.classList.remove('active'); }); document.querySelectorAll('section.tab').forEach(function(s){ s.classList.remove('active'); }); btn.classList.add('active'); document.getElementById('tab-'+btn.dataset.tab).classList.add('active'); if(btn.dataset.tab === 'catalogo') renderCatalogEditor(); if(btn.dataset.tab === 'registrar'){ populateFormSelects(); renderReport(); } if(btn.dataset.tab === 'config') renderConfigEditor(); }); });
+
+  var elCategoria = document.getElementById('f-categoria'); var elItem = document.getElementById('f-item'); var elQtd = document.getElementById('f-qtd'); var elValor = document.getElementById('f-valor'); var elGemasPreview = document.getElementById('f-gemas-preview'); var elData = document.getElementById('f-data'); var elAfl = document.getElementById('f-afl');
+
+  function populateFormSelects(){ var prevCat = elCategoria.value; elCategoria.innerHTML = ''; state.categories.forEach(function(c){ var opt = document.createElement('option'); opt.value = c; opt.textContent = c; elCategoria.appendChild(opt); }); if(prevCat && state.categories.indexOf(prevCat) !== -1) elCategoria.value = prevCat; populateItemSelect(); if(!elData.value) elData.value = todayISO(); populateAflSelect(); }
+  function populateAflSelect(){ var prevAfl = elAfl.value; elAfl.innerHTML = ''; var blankOpt = document.createElement('option'); blankOpt.value = ''; blankOpt.textContent = state.afls.length ? 'Selecione (opcional)' : 'Nenhum atendente cadastrado'; elAfl.appendChild(blankOpt); state.afls.forEach(function(a){ var opt = document.createElement('option'); opt.value = a; opt.textContent = a; elAfl.appendChild(opt); }); if(prevAfl && state.afls.indexOf(prevAfl) !== -1) elAfl.value = prevAfl; }
+  function defaultOrderIndex(cat, name){ for(var i=0;i<DEFAULT_CATALOG_RAW.length;i++){ if(DEFAULT_CATALOG_RAW[i][0]===cat && DEFAULT_CATALOG_RAW[i][1]===name) return i; } return 9999; }
+  function sortCatalogItems(items){ return items.slice().sort(function(a,b){ return defaultOrderIndex(a.cat,a.name) - defaultOrderIndex(b.cat,b.name); }); }
+  function populateItemSelect(){ var cat = elCategoria.value; var items = sortCatalogItems(state.catalog.filter(function(i){ return i.cat === cat; })); elItem.innerHTML = ''; items.forEach(function(i){ var opt = document.createElement('option'); opt.value = i.id; opt.textContent = i.name; elItem.appendChild(opt); }); fillValueFromItem(); }
+  function fillValueFromItem(){ var item = state.catalog.find(function(i){ return i.id === elItem.value; }); if(item){ elValor.value = item.discount != null ? item.discount : (item.full != null ? item.full : ''); } updateGemasPreview(); }
+  function updateGemasPreview(){ var qtd = parseFloat(elQtd.value) || 0; var valor = parseFloat(elValor.value) || 0; var taxa = state.taxa || 0; var gemas = qtd * valor * taxa; elGemasPreview.textContent = formatNum(Math.round(gemas*100)/100); }
+  elCategoria.addEventListener('change', populateItemSelect); elItem.addEventListener('change', fillValueFromItem); elQtd.addEventListener('input', updateGemasPreview); elValor.addEventListener('input', updateGemasPreview);
+
+  function keyFor(reg){ var pessoa = reg.idJogo && reg.idJogo.trim() ? reg.idJogo : reg.cliente; return normalize(pessoa) + '|' + reg.categoria + '|' + normalize(reg.itemNome); }
+  var dupWarning = document.getElementById('dup-warning'); var dupWarningText = document.getElementById('dup-warning-text'); var pendingRegistro = null;
+
+  document.getElementById('submit-btn').addEventListener('click', function(){ try{ var elCliente = document.getElementById('f-cliente'); elCliente.style.borderColor = ''; var cliente = elCliente.value.trim(); if(!cliente){ elCliente.style.borderColor = 'var(--red)'; elCliente.focus(); showToast('Informe o nome do cliente'); return; } var categoria = elCategoria.value; var itemObj = state.catalog.find(function(i){ return i.id === elItem.value; }); if(!itemObj){ showToast('Selecione um item'); return; } var qtd = parseFloat(elQtd.value) || 1; var valor = parseFloat(elValor.value) || 0; var gemas = Math.round(qtd * valor * (state.taxa||0) * 100)/100; var registro = { id: uid(), cliente: cliente, idJogo: document.getElementById('f-id-jogo').value.trim(), discord: document.getElementById('f-discord').value.trim(), afl: document.getElementById('f-afl').value.trim(), categoria: categoria, itemNome: itemObj.name, qtd: qtd, valorUnit: valor, gemas: gemas, novoId: document.getElementById('f-novo-id').value.trim(), data: elData.value || todayISO(), obs: document.getElementById('f-obs').value.trim(), enviado: false, enviadoPor: '' }; var dupExisting = state.registros.filter(function(r){ return keyFor(r) === keyFor(registro); }); if(dupExisting.length){ pendingRegistro = registro; dupWarningText.textContent = 'Já existe ' + dupExisting.length + ' registro(s) igual(is) para ' + cliente + ' + ' + itemObj.name + ' (ex.: ' + dupExisting[0].data + '). Registrar mesmo assim?'; dupWarning.style.display = 'block'; } else { saveRegistroFinal(registro); } }catch(err){ showToast('Erro ao registrar: ' + err.message); } });
+
+  document.getElementById('dup-confirm-btn').addEventListener('click', function(){ if(pendingRegistro) saveRegistroFinal(pendingRegistro); dupWarning.style.display = 'none'; pendingRegistro = null; });
+  document.getElementById('dup-cancel-btn').addEventListener('click', function(){ dupWarning.style.display = 'none'; pendingRegistro = null; });
+  document.getElementById('form-registro').addEventListener('keydown', function(ev){ if(ev.key === 'Enter' && ev.target.tagName !== 'TEXTAREA'){ ev.preventDefault(); document.getElementById('submit-btn').click(); } });
+
+  function saveRegistroFinal(registro){ state.registros.push(registro); saveRegistros(); showToast('Registrado — já pode lançar o próximo item do mesmo cliente'); elQtd.value = 1; document.getElementById('f-novo-id').value = ''; document.getElementById('f-obs').value = ''; fillValueFromItem(); dupWarning.style.display = 'none'; populateClientesList(); renderReport(); elItem.focus(); }
+  function populateClientesList(){ var dl = document.getElementById('clientes-conhecidos'); var nomes = []; state.registros.forEach(function(r){ if(r.cliente && nomes.indexOf(r.cliente) === -1) nomes.push(r.cliente); }); dl.innerHTML = ''; nomes.forEach(function(n){ var opt = document.createElement('option'); opt.value = n; dl.appendChild(opt); }); }
+  document.getElementById('new-client-btn').addEventListener('click', function(){ document.getElementById('f-cliente').value = ''; document.getElementById('f-id-jogo').value = ''; document.getElementById('f-discord').value = ''; document.getElementById('f-afl').value = ''; document.getElementById('f-novo-id').value = ''; document.getElementById('f-obs').value = ''; elQtd.value = 1; elData.value = todayISO(); populateFormSelects(); dupWarning.style.display = 'none'; document.getElementById('f-cliente').style.borderColor = ''; document.getElementById('f-cliente').focus(); });
+
+  var catalogContainer = document.getElementById('catalog-container'); var elTaxa = document.getElementById('f-taxa');
+  elTaxa.addEventListener('change', function(){ var v = parseFloat(elTaxa.value); state.taxa = isNaN(v) ? 1 : v; saveConfig(); updateGemasPreview(); });
+
+  function escapeHtml(s){ return String(s == null ? '' : s).replace(/[&<>"']/g,function(ch){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[ch]; }); }
+
+  function renderCatalogEditor(){
+    elTaxa.value = state.taxa; catalogContainer.innerHTML = '';
+    state.categories.forEach(function(cat){ var items = sortCatalogItems(state.catalog.filter(function(i){ return i.cat === cat; })); var block = document.createElement('details'); block.className = 'cat-block'; block.open = true; var summary = document.createElement('summary'); summary.innerHTML = '<span class="cat-chevron">▶</span><span class="cat-marker"></span><span class="cat-title">' + escapeHtml(cat) + '</span><span class="cat-count">' + items.length + ' ' + (items.length===1?'item':'itens') + '</span>'; block.appendChild(summary); var body = document.createElement('div'); body.className = 'cat-body'; var toolbar = document.createElement('div'); toolbar.className = 'cat-toolbar'; var nameWrap = document.createElement('div'); nameWrap.className = 'cat-name-edit'; var nameInput = document.createElement('input'); nameInput.type = 'text'; nameInput.value = cat; nameInput.title = 'Renomear categoria'; nameInput.addEventListener('click', function(ev){ ev.preventDefault(); }); nameInput.addEventListener('change', function(){ renameCategory(cat, nameInput.value.trim()); }); nameWrap.appendChild(nameInput); var delCatBtn = document.createElement('button'); delCatBtn.className = 'icon-btn'; delCatBtn.title = 'Excluir categoria'; delCatBtn.textContent = '✕ categoria'; delCatBtn.addEventListener('click', function(){ var count = items.length; showConfirm('Excluir a categoria "'+cat+'"? Isso remove ' + count + ' item(ns) do catálogo. Registros já feitos não serão apagados.', function(){ deleteCategory(cat); }); }); toolbar.appendChild(nameWrap); toolbar.appendChild(delCatBtn); body.appendChild(toolbar); var head = document.createElement('div'); head.className = 'item-row-head'; head.innerHTML = '<span>Item</span><span>Valor cheio</span><span>Valor c/ desconto</span><span></span>'; body.appendChild(head);
+      items.forEach(function(item){ var row = document.createElement('div'); row.className = 'item-row'; var wrap = document.createElement('div'); wrap.className = 'item-row-inputs'; var nameI = document.createElement('input'); nameI.type = 'text'; nameI.value = item.name; var fullI = document.createElement('input'); fullI.type = 'number'; fullI.step = '0.01'; fullI.value = item.full == null ? '' : item.full; var discI = document.createElement('input'); discI.type = 'number'; discI.step = '0.01'; discI.value = item.discount == null ? '' : item.discount; function commit(){ item.name = nameI.value.trim() || item.name; item.full = fullI.value === '' ? null : parseFloat(fullI.value); item.discount = discI.value === '' ? null : parseFloat(discI.value); saveConfig(); populateFormSelects(); } nameI.addEventListener('change', commit); fullI.addEventListener('change', commit); discI.addEventListener('change', commit); wrap.appendChild(nameI); wrap.appendChild(fullI); wrap.appendChild(discI); var del = document.createElement('button'); del.className = 'icon-btn'; del.textContent = '✕'; del.title = 'Excluir item'; del.addEventListener('click', function(){ showConfirm('Excluir o item "'+item.name+'" do catálogo?', function(){ state.catalog = state.catalog.filter(function(x){ return x.id !== item.id; }); saveConfig(); renderCatalogEditor(); populateFormSelects(); }); }); row.appendChild(wrap); row.appendChild(del); body.appendChild(row); });
+      var add = document.createElement('div'); add.className = 'add-item-row'; var ni=document.createElement('input');ni.placeholder='Novo item'; var fi=document.createElement('input');fi.type='number';fi.step='0.01';fi.placeholder='Valor cheio'; var di=document.createElement('input');di.type='number';di.step='0.01';di.placeholder='Valor desconto'; var ab=document.createElement('button');ab.className='btn secondary small';ab.textContent='Adicionar';ab.addEventListener('click',function(){ if(!ni.value.trim()) return; state.catalog.push({id:uid(),cat:cat,name:ni.value.trim(),full:fi.value===''?null:parseFloat(fi.value),discount:di.value===''?null:parseFloat(di.value)}); saveConfig(); renderCatalogEditor(); populateFormSelects(); }); add.appendChild(ni);add.appendChild(fi);add.appendChild(di);add.appendChild(ab); body.appendChild(add); block.appendChild(body); catalogContainer.appendChild(block); });
+  }
+
+  function renameCategory(oldName,newName){ if(!newName || newName===oldName){ renderCatalogEditor(); return; } if(state.categories.indexOf(newName)!==-1){ showToast('Já existe uma categoria com esse nome'); renderCatalogEditor(); return; } state.categories = state.categories.map(function(c){return c===oldName?newName:c;}); state.catalog.forEach(function(i){if(i.cat===oldName)i.cat=newName;}); saveConfig(); renderCatalogEditor(); populateFormSelects(); renderReport(); }
+  function deleteCategory(cat){ state.categories = state.categories.filter(function(c){return c!==cat;}); state.catalog = state.catalog.filter(function(i){return i.cat!==cat;}); saveConfig(); renderCatalogEditor(); populateFormSelects(); renderReport(); }
+  document.getElementById('add-cat-btn').addEventListener('click',function(){ var n=document.getElementById('new-cat-name'); var v=n.value.trim(); if(!v)return; if(state.categories.indexOf(v)!==-1){showToast('Categoria já existe');return;} state.categories.push(v); n.value=''; saveConfig(); renderCatalogEditor(); populateFormSelects(); });
+  document.getElementById('reset-catalog-btn').addEventListener('click',function(){ showConfirm('Restaurar o catálogo padrão? Alterações manuais no catálogo serão perdidas.',function(){ state.categories=DEFAULT_CATEGORIES.slice(); state.catalog=buildDefaultCatalog(); saveConfig(); renderCatalogEditor(); populateFormSelects(); }); });
+
+  function renderConfigEditor(){ var list=document.getElementById('afl-list'); list.innerHTML=''; state.afls.forEach(function(a,idx){ var row=document.createElement('div'); row.className='item-row'; var inp=document.createElement('input'); inp.value=a; inp.style.flex='1'; inp.addEventListener('change',function(){ var v=inp.value.trim(); if(v) state.afls[idx]=v; saveConfig(); populateAflSelect(); renderConfigEditor(); }); var del=document.createElement('button'); del.className='icon-btn';del.textContent='✕';del.addEventListener('click',function(){state.afls.splice(idx,1);saveConfig();populateAflSelect();renderConfigEditor();});row.appendChild(inp);row.appendChild(del);list.appendChild(row); }); }
+  document.getElementById('add-afl-btn').addEventListener('click',function(){ var i=document.getElementById('new-afl-name');var v=i.value.trim();if(!v)return;if(state.afls.indexOf(v)!==-1){showToast('Atendente já existe');return;}state.afls.push(v);i.value='';saveConfig();populateAflSelect();renderConfigEditor(); });
+
+  function filteredRecords(){ var q=normalize(document.getElementById('filter-cliente').value);var cat=document.getElementById('filter-categoria').value;var afl=document.getElementById('filter-afl').value;var st=document.getElementById('filter-status').value;var onlyDup=document.getElementById('filter-dup').checked;var counts={};state.registros.forEach(function(r){var k=keyFor(r);counts[k]=(counts[k]||0)+1;});return state.registros.filter(function(r){if(q && normalize(r.cliente).indexOf(q)===-1 && normalize(r.idJogo).indexOf(q)===-1)return false;if(cat&&r.categoria!==cat)return false;if(afl&&r.afl!==afl)return false;if(st==='pendente'&&r.enviado)return false;if(st==='enviado'&&!r.enviado)return false;if(onlyDup&&counts[keyFor(r)]<2)return false;return true;}); }
+
+  function renderFilters(){ var fc=document.getElementById('filter-categoria'); var prev=fc.value;fc.innerHTML='<option value="">Todas</option>';state.categories.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;fc.appendChild(o);});if(state.categories.indexOf(prev)!==-1)fc.value=prev; var fa=document.getElementById('filter-afl');var pa=fa.value;fa.innerHTML='<option value="">Todos</option>';state.afls.forEach(function(a){var o=document.createElement('option');o.value=a;o.textContent=a;fa.appendChild(o);});if(state.afls.indexOf(pa)!==-1)fa.value=pa; }
+
+  function renderReport(){ renderFilters(); var rows=filteredRecords(); var tbody=document.getElementById('report-tbody');tbody.innerHTML='';var counts={};state.registros.forEach(function(r){var k=keyFor(r);counts[k]=(counts[k]||0)+1;});var totalV=0,totalG=0,pend=0,dups=0;rows.forEach(function(r){totalV+=r.qtd*r.valorUnit;totalG+=r.gemas;if(!r.enviado)pend++;if(counts[keyFor(r)]>1)dups++;var tr=document.createElement('tr');if(counts[keyFor(r)]>1)tr.className='dup';var status='<button class="'+(r.enviado?'status-enviado':'status-pendente')+'" data-id="'+r.id+'">'+(r.enviado?'✓ Enviado'+(r.enviadoPor?' · '+escapeHtml(r.enviadoPor):''):'Pendente')+'</button>';tr.innerHTML='<td>'+escapeHtml(r.data||'')+'</td><td>'+escapeHtml(r.cliente)+(counts[keyFor(r)]>1?'<span class="badge">DUP</span>':'')+'</td><td>'+escapeHtml(r.idJogo||'')+'</td><td>'+escapeHtml(r.discord||'')+'</td><td>'+escapeHtml(r.categoria)+'</td><td>'+escapeHtml(r.itemNome)+'</td><td class="num-cell">'+formatNum(r.qtd)+'</td><td class="num-cell">'+formatBRL(r.valorUnit)+'</td><td class="num-cell">'+formatBRL(r.qtd*r.valorUnit)+'</td><td class="num-cell">'+formatNum(r.gemas)+'</td><td>'+status+'</td><td>'+escapeHtml(r.novoId||'')+'</td><td>'+escapeHtml(r.afl||'')+'</td><td>'+escapeHtml(r.obs||'')+'</td><td><button class="icon-btn del-reg" data-id="'+r.id+'">✕</button></td>';tbody.appendChild(tr);});document.getElementById('report-empty').style.display=rows.length?'none':'block';document.getElementById('stat-total').textContent=rows.length;document.getElementById('stat-valor').textContent=formatBRL(totalV);document.getElementById('stat-gemas').textContent=formatNum(totalG);document.getElementById('stat-pendente').textContent=pend;document.getElementById('stat-dup').textContent=dups;tbody.querySelectorAll('button.status-pendente,button.status-enviado').forEach(function(b){b.addEventListener('click',function(){var r=state.registros.find(function(x){return x.id===b.dataset.id;});if(!r)return;if(r.enviado)desmarcarEnvio(r);else promptEnviarGemas(r);});});tbody.querySelectorAll('.del-reg').forEach(function(b){b.addEventListener('click',function(){var r=state.registros.find(function(x){return x.id===b.dataset.id;});if(!r)return;showConfirm('Excluir este registro de '+r.cliente+'?',function(){state.registros=state.registros.filter(function(x){return x.id!==r.id;});saveRegistros();populateClientesList();renderReport();});});}); }
+
+  ['filter-cliente','filter-categoria','filter-afl','filter-status','filter-dup'].forEach(function(id){document.getElementById(id).addEventListener(id==='filter-cliente'?'input':'change',renderReport);});
+  document.getElementById('export-csv-btn').addEventListener('click',function(){var rows=filteredRecords();var cols=['Data','Cliente','ID','Discord ID','Categoria','Item','Qtd','Valor unit.','Valor total','Gemas','Status','Enviado por','Novo ID','AFL','Obs.'];var csv=[cols].concat(rows.map(function(r){return [r.data,r.cliente,r.idJogo,r.discord,r.categoria,r.itemNome,r.qtd,r.valorUnit,r.qtd*r.valorUnit,r.gemas,r.enviado?'Enviado':'Pendente',r.enviadoPor||'',r.novoId,r.afl,r.obs];})).map(function(row){return row.map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"';}).join(';');}).join('\n');var blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='relatorio-gemas.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(a.href);});
+
+  async function init(){ await loadState(); populateFormSelects(); populateClientesList(); renderCatalogEditor(); renderConfigEditor(); renderReport(); }
+
+  async function bootstrap(){
+    try{
+      const { data, error } = await db.auth.getSession();
+      if(error) throw error;
+      if(data.session) await showApp(data.session);
+      else await showLogin();
+    }catch(err){
+      showFatalError('falha ao conectar ao Supabase — ' + err.message);
+      await showLogin();
+      setAuthMessage('Falha ao conectar ao banco: ' + err.message, 'error');
+    }
+  }
+
+  db.auth.onAuthStateChange(function(event, session){ if(event === 'SIGNED_OUT') showLogin(); });
+  bootstrap();
+
+})();
+</script>
+</body>
+</html>
